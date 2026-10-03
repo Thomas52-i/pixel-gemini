@@ -3,6 +3,3 @@ python-telegram-bot==21.3
 
 # Browser automation
 selenium==4.21.0
-
-# WebDriver management (auto-downloads matching chromedriver)
-webdriver-manager==4.0.1
