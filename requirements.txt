@@ -1,5 +1,9 @@
-# Core bot framework
+# Telegram bot
 python-telegram-bot==21.3
 
-# Browser automation
+# Google OAuth callback web server
+Flask>=3.0,<4
+google-auth-oauthlib>=1.2,<2
+
+# Browser diagnostics (legacy helper)
 selenium==4.21.0
