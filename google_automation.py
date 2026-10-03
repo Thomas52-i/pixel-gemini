@@ -6,8 +6,9 @@ Logs into a Gmail account, navigates to Google One, detects the
 """
 
 import logging
-import time
 import re
+import shutil
+import time
 from urllib.parse import urlparse
 from typing import Optional
 
@@ -59,7 +60,29 @@ def _build_driver(profile: DeviceProfile) -> webdriver.Chrome:
     options.add_experimental_option("useAutomationExtension", False)
     options.add_argument("--disable-blink-features=AutomationControlled")
 
-    service = Service()  # relies on chromedriver being on PATH (Replit provides it)
+    # Replit installs Chromium/ChromeDriver as system dependencies via replit.nix.
+    # Prefer those binaries instead of Selenium Manager's cached download.
+    chrome_path = (
+        shutil.which("chromium")
+        or shutil.which("chromium-browser")
+        or shutil.which("google-chrome")
+        or shutil.which("google-chrome-stable")
+    )
+    driver_path = shutil.which("chromedriver")
+
+    if chrome_path:
+        options.binary_location = chrome_path
+        logger.info("Using Chrome/Chromium binary: %s", chrome_path)
+
+    if driver_path:
+        logger.info("Using ChromeDriver from PATH: %s", driver_path)
+        service = Service(executable_path=driver_path)
+    else:
+        logger.warning(
+            "chromedriver was not found on PATH; falling back to Selenium Manager"
+        )
+        service = Service()
+
     driver = webdriver.Chrome(service=service, options=options)
     driver.implicitly_wait(config.IMPLICIT_WAIT)
     driver.set_page_load_timeout(config.PAGE_LOAD_TIMEOUT)
@@ -167,7 +190,8 @@ def _extract_payment_link(driver: webdriver.Chrome) -> Optional[str]:
     all_links = driver.find_elements(By.TAG_NAME, "a")
     for link in all_links:
         try:
-            text = (link.text + " " + link.get_attribute("aria-label")).lower()
+            aria_label = link.get_attribute("aria-label") or ""
+            text = f"{link.text} {aria_label}".lower()
             href = link.get_attribute("href") or ""
             if any(kw in text for kw in keywords) and href:
                 logger.info("Found offer link via text match: %s", href)
